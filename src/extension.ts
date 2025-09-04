@@ -75,16 +75,20 @@ export async function activate(context: vscode.ExtensionContext) {
                         .replace(/\//g, '_')
                         .replace(/=+$/, '');
 
+                    const port: number = Number(
+                        vscode.workspace.getConfiguration('spotilyrics').get('port')
+                    ) || 8000;
+                    
                     preAuthState = new SpotifyPreAuthState(
                         clientId,
                         codeVerifier,
                         codeChallenge,
                         'authorization_code',
-                        'http://127.0.0.1:8000/callback'
+                        `http://127.0.0.1:${port}/callback`
                     );
 
                     vscode.env.openExternal(
-                        vscode.Uri.parse(await SpotifyWebApi.getAuthUrl(clientId, codeChallenge))
+                        vscode.Uri.parse(await SpotifyWebApi.getAuthUrl(clientId, codeChallenge, `http://127.0.0.1:${port}/callback`))
                     );
                 }
             });
@@ -144,6 +148,42 @@ export async function activate(context: vscode.ExtensionContext) {
                 .update('tracksCacheMaxSize', value, vscode.ConfigurationTarget.Global);
             vscode.window.showInformationMessage(`Maximum tracks cache size set to ${value}`);
             tracksCache = new LRUCache({ maxSize: value, sizeCalculation: () => 1 });
+        })
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand('spotilyrics.setPort', async () => {
+            const MIN = 1024,
+                MAX = 65535,
+                DEFAULT = 8000;
+            const currentPort: number = Number(
+                vscode.workspace.getConfiguration('spotilyrics').get('port')
+            ) || DEFAULT;
+            const input = await vscode.window.showInputBox({
+                prompt: `OAuth callback server port. Enter an integer ${MIN}–${MAX}`,
+                value: String(currentPort),
+                validateInput: (v) => {
+                    if (!/^\d+$/.test(v)) {
+                        return 'Please enter an integer';
+                    }
+                    const n = Number(v);
+                    if (n < MIN) {
+                        return `Minimum is ${MIN}`;
+                    }
+                    if (n > MAX) {
+                        return `Maximum is ${MAX}`;
+                    }
+                    return null;
+                },
+                ignoreFocusOut: true,
+            });
+            if (!input) {
+                return;
+            }
+            const value = Math.max(MIN, Math.min(MAX, parseInt(input, 10)));
+            await vscode.workspace
+                .getConfiguration('spotilyrics')
+                .update('port', value, vscode.ConfigurationTarget.Global);
+            vscode.window.showInformationMessage(`OAuth callback port set to ${value}`);
         })
     );
 }
@@ -268,7 +308,10 @@ async function createServer(context: vscode.ExtensionContext) {
             res.end('Not Found');
         }
     });
-    server.listen(8000);
+    const port: number = Number(
+        vscode.workspace.getConfiguration('spotilyrics').get('port')
+    ) || 8000;
+    server.listen(port);
 }
 
 async function pollSpotifyStat(context: vscode.ExtensionContext) {

@@ -14,7 +14,8 @@
     "activationEvents": [
         "onCommand:spotilyrics.lyrics",
         "onCommand:spotilyrics.logout",
-        "onCommand:spotilyrics.setTracksCacheMaxSize"
+        "onCommand:spotilyrics.setTracksCacheMaxSize",
+        "onCommand:spotilyrics.setPort"
     ],
     "main": "./out/extension.js",
     "repository": {
@@ -31,6 +32,13 @@
                     "minimum": 1,
                     "maximum": 9007199254740991,
                     "description": "Maximum cache size for tracks."
+                },
+                "spotilyrics.port": {
+                    "type": "number",
+                    "default": 8000,
+                    "minimum": 1024,
+                    "maximum": 65535,
+                    "description": "Port number for OAuth callback server."
                 }
             }
         },
@@ -46,6 +54,10 @@
             {
                 "command": "spotilyrics.setTracksCacheMaxSize",
                 "title": "Set Tracks Cache Max Size"
+            },
+            {
+                "command": "spotilyrics.setPort",
+                "title": "Set OAuth Callback Port"
             }
         ]
     },
